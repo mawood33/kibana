@@ -3,7 +3,9 @@
   "features": [
     {
       "type": "Feature",
-      "properties": {},
+      "properties": {
+        "id": 11111
+      },
       "geometry": {
         "coordinates": [
           [
@@ -20,11 +22,14 @@
           ]
         ],
         "type": "LineString"
-      }
+      },
+      "id": 0
     },
     {
       "type": "Feature",
-      "properties": {},
+      "properties": {
+        "id": 22222
+      },
       "geometry": {
         "coordinates": [
           [
@@ -45,11 +50,14 @@
           ]
         ],
         "type": "LineString"
-      }
+      },
+      "id": 2
     },
     {
       "type": "Feature",
-      "properties": {},
+      "properties": {
+        "id": 33333
+      },
       "geometry": {
         "coordinates": [
           [
@@ -82,7 +90,8 @@
           ]
         ],
         "type": "LineString"
-      }
+      },
+      "id": 3
     }
   ]
 }
