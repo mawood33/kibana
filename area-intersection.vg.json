@@ -1,0 +1,92 @@
+{ 
+  "$schema": "https://vega.github.io/schema/vega/v5.json", 
+  "width": 800, 
+  "height": 600, 
+  "autosize": "pad",
+  "config": {}, 
+  "data": [ 
+    { 
+      "name": "line", 
+      "url": "https://raw.githubusercontent.com/mawood33/kibana/8c4d6705b20743c53001830a171246df557ad52b/line.geojson", 
+      "format": {
+        "type": "json",
+        "property": "features"
+      },
+      "transform": [ 
+        { 
+          "type": "project", 
+          "fields": ["geometry"], 
+          "as": ["line_coordinates"] 
+        } 
+      ] 
+    }, 
+    { 
+      "name": "polygon", 
+      "url": "https://raw.githubusercontent.com/mawood33/kibana/8c4d6705b20743c53001830a171246df557ad52b/polygon.geojson",
+      "format": {
+        "type": "json",
+        "property": "features"
+      },
+      "transform": [ 
+        { 
+          "type": "project", 
+          "fields": ["geometry"], 
+          "as": ["polygon_coordinates"] 
+        } 
+      ] 
+    } 
+  ], 
+  "marks": [ 
+    { 
+      "type": "line", 
+      "from": {"data": "line"}, 
+      "encode": { 
+        "enter": { 
+          "x": {"scale": "x", "field": "line_coordinates.x"}, 
+          "y": {"scale": "y", "field": "line_coordinates.y"}, 
+          "stroke": {"value": "blue"}, 
+          "strokeWidth": {"value": 2} 
+        } 
+      } 
+    }, 
+    { 
+      "type": "path", 
+      "from": {"data": "polygon"}, 
+      "encode": { 
+        "enter": { 
+          "path": {"field": "polygon_coordinates"}, 
+          "stroke": {"value": "red"}, 
+          "strokeWidth": {"value": 2}, 
+          "fill": {"value": "rgba(255, 0, 0, 0.2)"} 
+        } 
+      } 
+    }, 
+    /*{ 
+      "type": "symbol", 
+      "from": {"data": "intersection"}, 
+      "encode": { 
+        "enter": { 
+          "x": {"scale": "x", "field": "x"}, 
+          "y": {"scale": "y", "field": "y"}, 
+          "shape": {"value": "circle"}, 
+          "size": {"value": 100}, 
+          "fill": {"value": "green"} 
+        } 
+      } 
+    } */
+  ], 
+  "scales": [ 
+    { 
+      "name": "x", 
+      "type": "linear", 
+      "domain": {"data": "line", "field": "line_coordinates.x"}, 
+      "range": "width" 
+    }, 
+    { 
+      "name": "y", 
+      "type": "linear", 
+      "domain": {"data": "line", "field": "line_coordinates.y"}, 
+      "range": "height" 
+    } 
+  ] 
+} 
