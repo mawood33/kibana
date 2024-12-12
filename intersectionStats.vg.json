@@ -1,0 +1,340 @@
+{ 
+  "$schema": "https://vega.github.io/schema/vega/v5.json", 
+  "width": 500, 
+  "height": 600, 
+  "autosize": "none",
+
+  "signals": [
+    {
+      "name": "rangeStep", "value": 20,
+      "bind": {"input": "range", "min": 5, "max": 50, "step": 1}
+    },
+    {
+      "name": "innerPadding", "value": 0.1,
+      "bind": {"input": "range", "min": 0, "max": 0.7, "step": 0.01}
+    },
+    {
+      "name": "outerPadding", "value": 0.2,
+      "bind": {"input": "range", "min": 0, "max": 0.4, "step": 0.01}
+    },
+    {
+      "name": "timeunit", "value": ["day"],
+      "bind": {"input": "select", "options": [
+        ["year"], ["month"], ["date"], ["day"], ["hours"]
+      ]}
+    },
+    {
+      "name": "measure", "value": "zone",
+      "bind": {"input": "select", "options": ["count", "zone"]}
+    },
+    {
+      "name": "title",
+      "update": "measure == 'zone' ? 'Unique Zone' : 'Number of Incursions'"
+    }
+  ],
+
+  "data": [ 
+    { 
+      "name": "line", 
+      "url": "https://raw.githubusercontent.com/mawood33/kibana/8c4d6705b20743c53001830a171246df557ad52b/line.geojson",
+      "format": {
+        "type": "json",
+        "property": "features"
+      },
+      // "transform": [ 
+      //   { 
+      //     "type": "project", 
+      //     "fields": ["geometry"], 
+      //     "as": ["line_coordinates"] 
+      //   } 
+      // ]
+    },
+    { 
+      "name": "polygon", 
+      "url": "https://raw.githubusercontent.com/mawood33/kibana/8c4d6705b20743c53001830a171246df557ad52b/polygon.geojson",
+      "format": {
+        "type": "json",
+        "property": "features"
+      },
+      // "transform": [ 
+      //   { 
+      //     "type": "project", 
+      //     "fields": ["geometry"], 
+      //     "as": ["polygon_coordinates"] 
+      //   } 
+      // ] 
+    },
+    {
+      "name": "zone1",
+      "values": [
+        {
+          "startTimestamp": "2024-12-01T01:00:00Z",
+          "zone": "zone1",
+          "platform": "Fighter"
+        },
+        {
+          "startTimestamp": "2024-12-02T02:00:00Z",
+          "zone": "zone1",
+          "platform": "Fighter"
+        },
+        {
+          "startTimestamp": "2024-12-03T03:00:00Z",
+          "zone": "zone1",
+          "platform": "Fighter"
+        },
+        {
+          "startTimestamp": "2024-12-01T06:00:00Z",
+          "zone": "zone1",
+          "platform": "Cargo"
+        },
+        {
+          "startTimestamp": "2024-12-02T12:00:00Z",
+          "zone": "zone2",
+          "platform": "Cargo"
+        },
+        {
+          "startTimestamp": "2024-12-03T15:00:00Z",
+          "zone": "zone2",
+          "platform": "Fighter"
+        },
+      ],
+      "transform": [
+        {
+          "type": "timeunit",
+          "field": "date",
+          "units": {"signal": "timeunit"},
+          "signal": "tbin"
+        },
+        {
+        "type": "aggregate",
+        "groupby": ["unit0", "zone"],
+        "ops": ["count", "distinct"],
+        "fields": ["null", "zone"],
+        "as": ["count", "zone"]
+        }
+      ]
+    },
+    {
+      "name": "zone2",
+      "values": [
+        {
+          "startTimestamp": "2024-12-01T06:00:00Z",
+          "zone": "zone2",
+          "platform": "Cargo"
+        },
+        {
+          "startTimestamp": "2024-12-02T12:00:00Z",
+          "zone": "zone2",
+          "platform": "Cargo"
+        },
+        {
+          "startTimestamp": "2024-12-03T15:00:00Z",
+          "zone": "zone2",
+          "platform": "Fighter"
+        },
+      ]
+    }
+  ], 
+  
+  "scales": [
+    {
+      "name": "xscale0",
+      "type": "band",
+      "range": "width",
+      "padding": 0.05,
+      "round": true,
+      "domain": {"signal": "timeSequence(tbin.unit, tbin.start, tbin.stop)"}
+    },
+    {
+      "name": "yscale",
+      "type": "linear",
+      "range": "height",
+      "domain": {"data": "zone1", "field": {"signal": "measure"}},
+      "zero": true,
+      "nice": true
+    }
+  ],
+
+  "axes": [
+    { "orient": "bottom", "scale": "xscale0",
+      "formatType": "time", "format": {"signal": "timeUnitSpecifier(tbin.units, {hours: '%H'})"} },
+    { "orient": "left", "scale": "yscale", "tickCount": 7,
+      "title": {"signal": "title"} }
+  ],
+
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data": "zone1"},
+      "encode": {
+        "update": {
+          "x": {"scale": "xscale0", "field": "unit0"},
+          "width": {"scale": "xscale0", "band": 1},
+          "y": {"scale": "yscale", "field": {"signal": "measure"}},
+          "y2": {"scale": "yscale", "value": 0},
+          "fill": {"value": "steelblue"},
+          "tooltip": {"signal": "{timeunit: timeFormat(datum.unit0, timeUnitSpecifier(tbin.units)), count: format(datum.count, ',') + ' incursions', zone: datum.zone}"}
+        },
+        "hover": {
+          "fill": {"value": "firebrick"}
+        }
+      }
+    }
+  // ]
+  // "marks": [ 
+  //   { 
+  //     "type": "linear", 
+  //     "from": {"data": "zone1"}, 
+  //     "encode": { 
+  //       "enter": { 
+  //         "x": {"scale": "x", "field": "zone"}, 
+  //         "y": {"a": "y", "field": "count"}, 
+  //         "stroke": {"value": "blue"}, 
+  //         "strokeWidth": {"value": 2} 
+  //       } 
+  //     },
+  //   }, 
+    // { 
+    //   "type": "path", 
+    //   "from": {"data": "polygon"}, 
+    //   "encode": { 
+    //     "enter": { 
+    //       "path": {"field": "geometry"}, 
+    //       "stroke": {"value": "red"}, 
+    //       "strokeWidth": {"value": 2}, 
+    //       "fill": {"value": "rgba(255, 0, 0, 0.2)"} 
+    //     } 
+    //   } 
+    // },
+    /////////// NOT NEEDED?
+    // { 
+    //   "type": "symbol", 
+    //   "from": {"data": "intersection"}, 
+    //   "encode": { 
+    //     "enter": { 
+    //       "x": {"scale": "x", "field": "x"}, 
+    //       "y": {"scale": "y", "field": "y"}, 
+    //       "shape": {"value": "circle"}, 
+    //       "size": {"value": 100}, 
+    //       "fill": {"value": "green"} 
+    //     } 
+    //   } 
+    // } 
+  ],
+
+  //////////////// DON'T WORK?
+  // "scales": [ 
+  //   { 
+  //     "name": "x", 
+  //     "type": "linear", 
+  //     "domain": {"data": "line", "field": "geometry.x"}, 
+  //     "range": "width" 
+  //   }, 
+  //   { 
+  //     "name": "y", 
+  //     "type": "linear", 
+  //     "domain": {"data": "line", "field": "geometry.y"}, 
+  //     "range": "height" 
+  //   } 
+  // ],
+
+  ////////////////////////////////////
+  // Using Signals, Projections, Marks - display lines & polygons
+  // "signals": [
+  //   {
+  //     "name": "translate0",
+  //     "update": "width / 2"
+  //   },
+  //   {
+  //     "name": "translate1",
+  //     "update": "height / 2"
+  //   }
+  // ],
+  // "projections": [
+  //   {
+  //     "name": "projection",
+  //     "size": {"signal": "[translate0, translate1]"},
+  //     "fit": {"signal": "data('line')"}
+  //   }
+  // ],
+  // "marks": [
+  //   {
+  //     "type": "shape",
+  //     "from": {
+  //       "data": "line"
+  //     },
+  //     "encode": {
+  //       "update": {
+  //         "strokeWidth": {
+  //           "value": 0.5
+  //         },
+  //         "stroke": { 
+  //           "value": "darkblue"
+  //         },
+  //         "fill": {
+  //           "value": "lightblue"
+  //         },
+  //         "fillOpacity": {
+  //           "value": 0.5
+  //         }
+  //       },
+  //       "hover": {
+  //         "fill": {
+  //           "value": "#66C2A5"
+  //         },
+  //         "strokeWidth": {
+  //           "value": 2
+  //         },
+  //         "stroke": {
+  //           "value": "#FC8D62"
+  //         }
+  //       }
+  //     },
+  //     "transform": [
+  //       {
+  //         "type": "geoshape",
+  //         "projection": "projection"
+  //       }
+  //     ]
+  //   },
+  //   {
+  //     "type": "shape",
+  //     "from": {
+  //       "data": "polygon"
+  //     },
+  //     "encode": {
+  //       "update": {
+  //         "strokeWidth": {
+  //           "value": 0.5
+  //         },
+  //         "stroke": { 
+  //           "value": "darkblue"
+  //         },
+  //         // "fill": {
+  //         //   "value": "lightblue"
+  //         // },
+  //         "fillOpacity": {
+  //           "value": 0.5
+  //         }
+  //       },
+  //       "hover": {
+  //         // "fill": {
+  //         //   "value": "#66C2A5"
+  //         // },
+  //         "strokeWidth": {
+  //           "value": 2
+  //         },
+  //         "stroke": {
+  //           "value": "#FC8D62"
+  //         }
+  //       }
+  //     },
+  //     "transform": [
+  //       {
+  //         "type": "geoshape",
+  //         "projection": "projection"
+  //       }
+  //     ]
+  //   }
+  // ]
+} 
