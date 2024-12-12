@@ -1,0 +1,138 @@
+{ 
+  "$schema": "https://vega.github.io/schema/vega/v5.json", 
+  "width": 500, 
+  "height": 600, 
+  "autosize": "none",
+
+  "data": [ 
+    { 
+      "name": "line", 
+      "url": "https://raw.githubusercontent.com/mawood33/kibana/8c4d6705b20743c53001830a171246df557ad52b/line.geojson",
+      "format": {
+        "type": "json",
+        "property": "features"
+      },
+      // "transform": [ 
+      //   { 
+      //     "type": "project", 
+      //     "fields": ["geometry"], 
+      //     "as": ["line_coordinates"] 
+      //   } 
+      // ]
+    },
+    { 
+      "name": "polygon", 
+      "url": "https://raw.githubusercontent.com/mawood33/kibana/8c4d6705b20743c53001830a171246df557ad52b/polygon.geojson",
+      "format": {
+        "type": "json",
+        "property": "features"
+      },
+      // "transform": [ 
+      //   { 
+      //     "type": "project", 
+      //     "fields": ["geometry"], 
+      //     "as": ["polygon_coordinates"] 
+      //   } 
+      // ] 
+    }
+  ],
+
+  // Using Signals, Projections, Marks - display lines & polygons
+  "signals": [
+    {
+      "name": "translate0",
+      "update": "width / 2"
+    },
+    {
+      "name": "translate1",
+      "update": "height / 2"
+    }
+  ],
+  "projections": [
+    {
+      "name": "projection",
+      "size": {"signal": "[translate0, translate1]"},
+      "fit": {"signal": "data('line')"}
+    }
+  ],
+  "marks": [
+    {
+      "type": "shape",
+      "from": {
+        "data": "line"
+      },
+      "encode": {
+        "update": {
+          "strokeWidth": {
+            "value": 0.5
+          },
+          "stroke": { 
+            "value": "darkblue"
+          },
+          "fill": {
+            "value": "lightblue"
+          },
+          "fillOpacity": {
+            "value": 0.5
+          }
+        },
+        "hover": {
+          "fill": {
+            "value": "#66C2A5"
+          },
+          "strokeWidth": {
+            "value": 2
+          },
+          "stroke": {
+            "value": "#FC8D62"
+          }
+        }
+      },
+      "transform": [
+        {
+          "type": "geoshape",
+          "projection": "projection"
+        }
+      ]
+    },
+    {
+      "type": "shape",
+      "from": {
+        "data": "polygon"
+      },
+      "encode": {
+        "update": {
+          "strokeWidth": {
+            "value": 0.5
+          },
+          "stroke": { 
+            "value": "darkblue"
+          },
+          // "fill": {
+          //   "value": "lightblue"
+          // },
+          "fillOpacity": {
+            "value": 0.5
+          }
+        },
+        "hover": {
+          // "fill": {
+          //   "value": "#66C2A5"
+          // },
+          "strokeWidth": {
+            "value": 2
+          },
+          "stroke": {
+            "value": "#FC8D62"
+          }
+        }
+      },
+      "transform": [
+        {
+          "type": "geoshape",
+          "projection": "projection"
+        }
+      ]
+    }
+  ]
+} 
