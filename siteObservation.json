@@ -1,0 +1,27 @@
+[
+  {
+    "site": "A",
+    "objType": "typeA",
+    "dateTime": "2025-03-26T01:00:00Z"
+  },
+  {
+    "site": "A",
+    "objType": "typeA",
+    "dateTime": "2025-03-26T01:00:00Z"
+  },
+  {
+    "site": "A",
+    "objType": "typeA",
+    "dateTime": "2025-03-26T01:00:00Z"
+  },
+  {
+    "site": "A",
+    "objType": "typeB",
+    "dateTime": "2025-03-26T01:00:00Z"
+  },
+  {
+    "site": "A",
+    "objType": "typeB",
+    "dateTime": "2025-03-26T01:00:00Z"
+  }
+]
