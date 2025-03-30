@@ -10,5 +10,53 @@
     "objType": "typeB",
     "dateTime": "2025-03-26T01:00:00Z",
     "count": 2
-  }
+  },
+  {
+    "site": "A",
+    "objType": "typeA",
+    "dateTime": "2025-03-27T01:00:00Z",
+    "count": 3
+  },
+  {
+    "site": "A",
+    "objType": "typeB",
+    "dateTime": "2025-03-27T01:00:00Z",
+    "count": 1
+  },
+  {
+    "site": "B",
+    "objType": "typeA",
+    "dateTime": "2025-03-26T01:00:00Z",
+    "count": 2
+  },
+  {
+    "site": "B",
+    "objType": "typeB",
+    "dateTime": "2025-03-26T01:00:00Z",
+    "count": 4
+  },
+  {
+    "site": "B",
+    "objType": "typeC",
+    "dateTime": "2025-03-26T01:00:00Z",
+    "count": 5
+  },
+  {
+    "site": "B",
+    "objType": "typeA",
+    "dateTime": "2025-03-27T01:00:00Z",
+    "count": 2
+  },
+  {
+    "site": "B",
+    "objType": "typeB",
+    "dateTime": "2025-03-27T01:00:00Z",
+    "count": 4
+  },
+  {
+    "site": "B",
+    "objType": "typeC",
+    "dateTime": "2025-03-27T01:00:00Z",
+    "count": 5
+  },
 ]
