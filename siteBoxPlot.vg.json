@@ -19,16 +19,6 @@
 
   "data": [
     {
-      "name": "penguins",
-      "url": "data/penguins.json",
-      "transform": [
-        {
-          "type": "filter",
-          "expr": "datum.Species != null && datum['Body Mass (g)'] != null"
-        }
-      ]
-    },
-    {
       "name": "siteSummary2",
       "url": "https://raw.githubusercontent.com/mawood33/kibana/b3fd27e96694f8281f2f055cd4b7240dd7edce1e/siteSummary.json",
       "transform": [
@@ -46,43 +36,48 @@
       "url": "https://raw.githubusercontent.com/mawood33/kibana/db4fa2beb66f8df8359bcb186e454d15f6f424d3/siteSummary.json"
     },
     {
+      "name": "bySite",
+      "url": "https://raw.githubusercontent.com/mawood33/kibana/db4fa2beb66f8df8359bcb186e454d15f6f424d3/siteSummary.json",
+      "transform": [
+        {
+          "type": "joinaggregate",
+          "groupby": ["site"],
+          "fields": ["count", "count", "count", "count", "count", "count"],
+          "ops": ["min", "q1", "median", "q3", "max", "average"],
+          "as": ["min", "q1", "median", "q3", "max", "sum"]
+        }
+        ]
+    },
+    {
       "name": "siteObservation",
       "url": "https://raw.githubusercontent.com/mawood33/kibana/ab4156faaf1473253a3a2050b54e8f2e53d7ffdd/siteObservation.json"
     }
   ],
 
   "scales": [
-    // {
-    //   "name": "layout",
-    //   "type": "band",
-    //   "range": "height",
-    //   "domain": {"data": "penguins", "field": "Species"}
-    // },
-    // {
-    //   "name": "xscale",
-    //   "type": "linear",
-    //   "range": "width", "round": true,
-    //   "domain": {"data": "penguins", "field": "Body Mass (g)"},
-    //   "domainMin": 1,
-    //   "zero": false, "nice": true
-    // },
     {
       "name": "layout",
       "type": "band",
       "range": "height",
-      "domain": {"data": "siteSummary", "field": "site"}
+      "domain": {"data": "bySite", "field": "site"}
     },
     {
       "name": "xscale",
       "type": "linear",
       "range": "width",
-      "domain": {"data": "siteSummary2", "field": "sum"}
+      "domain": {"data": "bySite", "field": "max"},
+      "zero": true,
+      "nice": true
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "range": "category",
+      "domain": {"data": "bySite", "field": "site"}
     }
   ],
 
   "axes": [
-    /*{"orient": "bottom", "scale": "xscale", "zindex": 1},
-    {"orient": "left", "scale": "layout", "tickCount": 5, "zindex": 1},*/
     {"orient": "bottom", "scale": "xscale", "zindex": 1},
     {"orient": "left", "scale": "layout", "tickCount": 5, "zindex": 1}
   ],
@@ -92,7 +87,7 @@
       "type": "group",
       "from": {
         "facet": {
-          "data": "siteSummary",
+          "data": "bySite",
           "name": "site",
           "groupby": ["site"]
         }
@@ -113,7 +108,6 @@
           "transform": [
             {
               "type": "aggregate",
-              /*"fields": ["Body Mass (g)", "Body Mass (g)", "Body Mass (g)", "Body Mass (g)", "Body Mass (g)"],*/
               "fields": ["count", "count", "count", "count", "count", "count"],
               "ops": ["min", "q1", "median", "q3", "max", "average"],
               "as": ["min", "q1", "median", "q3", "max", "sum"]
@@ -125,10 +119,12 @@
       "marks": [
         {
           "type": "rect",
-          "from": {"data": "summary"},
+          "from": {"data": "site"},
+          //"strokeDash": "[8,4]",
           "encode": {
             "enter": {
               "fill": {"value": "black"},
+              "tooltip": {"signal": "datum"},
               "height": {"value": 1}
             },
             "update": {
@@ -140,7 +136,7 @@
         },
         {
           "type": "rect",
-          "from": {"data": "summary"},
+          "from": {"data": "site"},
           "encode": {
             "enter": {
               "fill": {"value": "steelblue"},
@@ -153,41 +149,76 @@
               "yc": {"signal": "plotWidth / 2"},
               "height": {"signal": "plotWidth / 2"},
               "x": {"scale": "xscale", "field": "q1"},
-              "x2": {"scale": "xscale", "field": "q3"}
+              "x2": {"scale": "xscale", "field": "q3"},
+              "fill": {"scale": "color", "field": "site"}
             }
           }
         },
         {
           "type": "rect",
-          "from": {"data": "summary"},
+          "from": {"data": "site"},
           "encode": {
             "enter": {
               "fill": {"value": "aliceblue"},
+              "tooltip": {"signal": "datum"},
               "width": {"value": 2}
             },
             "update": {
               "yc": {"signal": "plotWidth / 2"},
               "height": {"signal": "plotWidth / 2"},
               "x": {"scale": "xscale", "field": "median"},
-              "x2": {"scale": "xscale", "field": "sum"}
+              // "x2": {"scale": "xscale", "field": "sum"}
             }
           }
         },
         {
-      "type": "rect",
-      "from": {"data": "summary"},
-      "encode": {
-        "enter": {
-              "fill": {"value": "red"},
+          "type": "rect",
+          "from": {"data": "site"},
+          "encode": {
+            "enter": {
+                  "fill": {"value": "red"},
+                  "tooltip": {"field": "sum"},
+                  "width": {"value": 2}
+                },
+            "update": {
+              "yc": {"signal": "plotWidth / 2"},
+              "height": {"signal": "plotWidth / 2"},
+              "x": {"scale": "xscale", "field": "sum"}
+            }
+          }
+        },
+        {
+          "type": "rect",
+          "from": {"data": "site"},
+          "encode": {
+            "enter": {
+              "fill": {"value": "black"},
+              "tooltip": {"signal": "datum"},
               "width": {"value": 2}
             },
-        "update": {
-          "yc": {"signal": "plotWidth / 2"},
-          "height": {"signal": "plotWidth / 2"},
-          "x": {"scale": "xscale", "field": "sum"}
+            "update": {
+              "yc": {"signal": "plotWidth / 2"},
+              "height": {"signal": "plotWidth / 2"},
+              "x": {"scale": "xscale", "field": "min"}
+            }
+          }
+        },
+        {
+          "type": "rect",
+          "from": {"data": "site"},
+          "encode": {
+            "enter": {
+              "fill": {"value": "black"},
+              "tooltip": {"signal": "datum"},
+              "width": {"value": 2}
+            },
+            "update": {
+              "yc": {"signal": "plotWidth / 2"},
+              "height": {"signal": "plotWidth / 2"},
+              "x": {"scale": "xscale", "field": "max"}
+            }
+          }
         }
-      }
-    }
       ]
     },
     {
