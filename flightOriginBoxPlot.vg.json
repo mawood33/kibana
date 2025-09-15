@@ -1,36 +1,33 @@
 {
   "$schema": "https://vega.github.io/schema/vega/v6.json",
-  "description": "Flight counts by origin with pagination (10 per page)",
+  "description": "Flight counts by origin with full pagination + stable whiskers",
   "width": 800,
   "height": 400,
   "padding": 5,
 
   "signals": [
-    {
-      "name": "pageSize",
-      "value": 10
-    },
+    { "name": "pageSize", "value": 10 },
     {
       "name": "page",
       "value": 0,
       "on": [
-        {
-          "events": {"type": "click", "target": "prev-button"},
-          "update": "clamp(page - 1, 0, maxPage)"
-        },
-        {
-          "events": {"type": "click", "target": "next-button"},
-          "update": "clamp(page + 1, 0, maxPage)"
-        }
+        { "events": { "type": "click", "target": "first-button" }, "update": "0" },
+        { "events": { "type": "click", "target": "prev-button" }, "update": "clamp(page - 1, 0, maxPage)" },
+        { "events": { "type": "click", "target": "next-button" }, "update": "clamp(page + 1, 0, maxPage)" },
+        { "events": { "type": "click", "target": "last-button" }, "update": "maxPage" }
       ]
     },
     {
       "name": "originCount",
-      "update": "length(data('originList'))"
+      "update": "length(data('originIndex'))"
     },
     {
       "name": "maxPage",
       "update": "ceil(originCount / pageSize) - 1"
+    },
+    {
+      "name": "pageLabel",
+      "update": "'Page ' + (page + 1) + ' of ' + (maxPage + 1)"
     }
   ],
 
@@ -38,7 +35,7 @@
     {
       "name": "raw",
       "url": "https://vega.github.io/editor/data/flights-20k.json",
-      "format": {"type": "json"},
+      "format": { "type": "json" },
       "transform": [
         {
           "type": "formula",
@@ -52,7 +49,6 @@
         }
       ]
     },
-
     {
       "name": "dailyCounts",
       "source": "raw",
@@ -77,19 +73,9 @@
       ]
     },
 
+    // Build a full originIndex (unfiltered) with whiskers and average
     {
-      "name": "originList",
-      "source": "dailyCounts",
-      "transform": [
-        {
-          "type": "aggregate",
-          "groupby": ["origin"]
-        }
-      ]
-    },
-
-    {
-      "name": "minMaxPerOrigin",
+      "name": "originIndex",
       "source": "dailyCounts",
       "transform": [
         {
@@ -105,12 +91,44 @@
           "as": ["row_number"]
         },
         {
+          "type": "collect",
+          "sort": { "field": "origin", "order": "ascending" }
+        }
+      ]
+    },
+
+    // Paginated set of origins
+    {
+      "name": "pagedOrigins",
+      "source": "originIndex",
+      "transform": [
+        {
           "type": "filter",
           "expr": "datum.row_number > page * pageSize && datum.row_number <= (page + 1) * pageSize"
         }
       ]
     },
 
+    // Data for whiskers & bands: filtered by pagedOrigins
+    {
+      "name": "minMaxPerOrigin",
+      "source": "originIndex",
+      "transform": [
+        {
+          "type": "lookup",
+          "from": "pagedOrigins",
+          "key": "origin",
+          "fields": ["origin"],
+          "as": ["match"]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.match != null"
+        }
+      ]
+    },
+
+    // Data for 30 days avg, filtered by pagedOrigins
     {
       "name": "last30Days",
       "source": "dailyCounts",
@@ -135,18 +153,19 @@
         },
         {
           "type": "lookup",
-          "from": "minMaxPerOrigin",
+          "from": "pagedOrigins",
           "key": "origin",
           "fields": ["origin"],
-          "as": ["mm"]
+          "as": ["match"]
         },
         {
           "type": "filter",
-          "expr": "datum.mm != null"
+          "expr": "datum.match != null"
         }
       ]
     },
 
+    // Data for last 24 hours, filtered by pagedOrigins
     {
       "name": "last24Hours",
       "source": "raw",
@@ -175,14 +194,14 @@
         },
         {
           "type": "lookup",
-          "from": "minMaxPerOrigin",
+          "from": "pagedOrigins",
           "key": "origin",
           "fields": ["origin"],
-          "as": ["mm"]
+          "as": ["match"]
         },
         {
           "type": "filter",
-          "expr": "datum.mm != null"
+          "expr": "datum.match != null"
         }
       ]
     }
@@ -192,7 +211,7 @@
     {
       "name": "y",
       "type": "band",
-      "domain": {"data": "minMaxPerOrigin", "field": "origin"},
+      "domain": { "data": "minMaxPerOrigin", "field": "origin" },
       "range": "height",
       "padding": 0.3
     },
@@ -200,7 +219,7 @@
       "name": "x",
       "type": "linear",
       "domain": {
-        "data": "minMaxPerOrigin",
+        "data": "originIndex",
         "fields": ["Low", "High"],
         "sort": true
       },
@@ -211,49 +230,55 @@
     {
       "name": "color",
       "type": "ordinal",
-      "domain": {"data": "minMaxPerOrigin", "field": "origin"},
-      "range": {"scheme": "category10"}
+      "domain": { "data": "originIndex", "field": "origin" },
+      "range": { "scheme": "category10" }
     }
   ],
 
   "axes": [
-    {"orient": "bottom", "scale": "x", "title": "Flight Counts"},
-    {"orient": "left", "scale": "y", "title": "Origin"}
+    { "orient": "bottom", "scale": "x", "title": "Flight Counts" },
+    { "orient": "left", "scale": "y", "title": "Origin" }
   ],
 
   "legends": [
-    {
-      "fill": "color",
-      "title": "Origin",
-      "orient": "right"
-    }
+    { "fill": "color", "title": "Origin", "orient": "right" }
   ],
 
   "marks": [
     {
       "type": "group",
       "encode": {
-        "enter": {
-          "x": {"value": 0},
-          "y": {"value": 0}
-        }
+        "enter": { "x": { "value": 0 }, "y": { "value": 0 } }
       },
       "marks": [
+        {
+          "type": "text",
+          "name": "first-button",
+          "encode": {
+            "enter": {
+              "x": { "value": 20 },
+              "y": { "value": -30 },
+              "text": { "value": "First" },
+              "fill": { "value": "blue" },
+              "cursor": { "value": "pointer" },
+              "fontSize": { "value": 14 }
+            },
+            "hover": { "fill": { "value": "darkblue" } }
+          }
+        },
         {
           "type": "text",
           "name": "prev-button",
           "encode": {
             "enter": {
-              "x": {"value": 20},
-              "y": {"value": -20},
-              "text": {"value": "Previous"},
-              "fill": {"value": "blue"},
-              "cursor": {"value": "pointer"},
-              "fontSize": {"value": 14}
+              "x": { "value": 90 },
+              "y": { "value": -30 },
+              "text": { "value": "Previous" },
+              "fill": { "value": "blue" },
+              "cursor": { "value": "pointer" },
+              "fontSize": { "value": 14 }
             },
-            "hover": {
-              "fill": {"value": "darkblue"}
-            }
+            "hover": { "fill": { "value": "darkblue" } }
           }
         },
         {
@@ -261,70 +286,107 @@
           "name": "next-button",
           "encode": {
             "enter": {
-              "x": {"value": 100},
-              "y": {"value": -20},
-              "text": {"value": "Next"},
-              "fill": {"value": "blue"},
-              "cursor": {"value": "pointer"},
-              "fontSize": {"value": 14}
+              "x": { "value": 190 },
+              "y": { "value": -30 },
+              "text": { "value": "Next" },
+              "fill": { "value": "blue" },
+              "cursor": { "value": "pointer" },
+              "fontSize": { "value": 14 }
             },
-            "hover": {
-              "fill": {"value": "darkblue"}
+            "hover": { "fill": { "value": "darkblue" } }
+          }
+        },
+        {
+          "type": "text",
+          "name": "last-button",
+          "encode": {
+            "enter": {
+              "x": { "value": 260 },
+              "y": { "value": -30 },
+              "text": { "value": "Last" },
+              "fill": { "value": "blue" },
+              "cursor": { "value": "pointer" },
+              "fontSize": { "value": 14 }
+            },
+            "hover": { "fill": { "value": "darkblue" } }
+          }
+        },
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "x": { "value": 350 },
+              "y": { "value": -30 },
+              "text": { "signal": "pageLabel" },
+              "fill": { "value": "black" },
+              "fontSize": { "value": 14 }
             }
           }
         }
       ]
     },
+
     {
       "type": "rule",
-      "from": {"data": "minMaxPerOrigin"},
+      "from": { "data": "minMaxPerOrigin" },
       "encode": {
         "enter": {
-          "y": {"scale": "y", "field": "origin", "offset": {"signal": "bandwidth('y')/2"}},
-          "y2": {"scale": "y", "field": "origin", "offset": {"signal": "bandwidth('y')/2"}},
-          "x": {"scale": "x", "field": "Low"},
-          "x2": {"scale": "x", "field": "High"},
-          "stroke": {"scale": "color", "field": "origin"},
-          "strokeWidth": {"value": 3},
-          "opacity": {"value": 0.6}
+          "strokeWidth": { "value": 3 },
+          "opacity": { "value": 0.6 }
+        },
+        "update": {
+          "x": { "scale": "x", "field": "Low" },
+          "x2": { "scale": "x", "field": "High" },
+          "y": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
+          "y2": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
+          "stroke": { "scale": "color", "field": "origin" }
         }
-      }
+      },
+      "transition": { "type": "fade", "duration": 300 }
     },
+
     {
       "type": "symbol",
-      "from": {"data": "last30Days"},
+      "from": { "data": "last30Days" },
       "encode": {
         "enter": {
-          "y": {"scale": "y", "field": "origin", "offset": {"signal": "bandwidth('y')/2"}},
-          "x": {"scale": "x", "field": "avgCount"},
-          "size": {"value": 120},
-          "shape": {"value": "circle"},
-          "fill": {"scale": "color", "field": "origin"},
-          "stroke": {"value": "black"},
-          "strokeWidth": {"value": 1},
+          "size": { "value": 120 },
+          "shape": { "value": "circle" },
+          "stroke": { "value": "black" },
+          "strokeWidth": { "value": 1 }
+        },
+        "update": {
+          "x": { "scale": "x", "field": "avgCount" },
+          "y": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
+          "fill": { "scale": "color", "field": "origin" },
           "tooltip": {
             "signal": "{'Origin': datum.origin, 'Avg (30d)': format(datum.avgCount, '.1f')}"
           }
         }
-      }
+      },
+      "transition": { "type": "fade", "duration": 300 }
     },
+
     {
       "type": "symbol",
-      "from": {"data": "last24Hours"},
+      "from": { "data": "last24Hours" },
       "encode": {
         "enter": {
-          "y": {"scale": "y", "field": "origin", "offset": {"signal": "bandwidth('y')/2"}},
-          "x": {"scale": "x", "field": "count24h"},
-          "size": {"value": 180},
-          "shape": {"value": "circle"},
-          "fill": {"value": "white"},
-          "stroke": {"scale": "color", "field": "origin"},
-          "strokeWidth": {"value": 2},
+          "size": { "value": 180 },
+          "shape": { "value": "circle" },
+          "fill": { "value": "white" },
+          "strokeWidth": { "value": 2 }
+        },
+        "update": {
+          "x": { "scale": "x", "field": "count24h" },
+          "y": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
+          "stroke": { "scale": "color", "field": "origin" },
           "tooltip": {
             "signal": "{'Origin': datum.origin, 'Count (24h)': datum.count24h}"
           }
         }
-      }
+      },
+      "transition": { "type": "fade", "duration": 300 }
     }
   ]
 }
