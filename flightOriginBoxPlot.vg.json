@@ -1,9 +1,21 @@
 {
   "$schema": "https://vega.github.io/schema/vega/v6.json",
-  "description": "Flight counts by origin with whisker bands on counts and points for avg (30d) and actual (24h)",
+  "description": "Flight counts by origin with pagination (10 per page)",
   "width": 800,
   "height": 400,
   "padding": 5,
+
+  "signals": [
+    {
+      "name": "page",
+      "value": 0,
+      "bind": {"input": "range", "min": 0, "max": 5, "step": 1}
+    },
+    {
+      "name": "pageSize",
+      "value": 10
+    }
+  ],
 
   "data": [
     {
@@ -58,6 +70,15 @@
           "fields": ["count", "count", "count"],
           "ops": ["min", "max", "average"],
           "as": ["Low", "High", "Avg"]
+        },
+        {
+          "type": "window",
+          "ops": ["row_number"],
+          "as": ["row_number"]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.row_number > page * pageSize && datum.row_number <= (page + 1) * pageSize"
         }
       ]
     },
@@ -83,6 +104,17 @@
           "ops": ["average"],
           "fields": ["count"],
           "as": ["avgCount"]
+        },
+        {
+          "type": "lookup",
+          "from": "minMaxPerOrigin",
+          "key": "origin",
+          "fields": ["origin"],
+          "as": ["mm"]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.mm != null"
         }
       ]
     },
@@ -112,6 +144,17 @@
           "groupby": ["origin"],
           "ops": ["count"],
           "as": ["count24h"]
+        },
+        {
+          "type": "lookup",
+          "from": "minMaxPerOrigin",
+          "key": "origin",
+          "fields": ["origin"],
+          "as": ["mm"]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.mm != null"
         }
       ]
     }
