@@ -7,13 +7,30 @@
 
   "signals": [
     {
-      "name": "page",
-      "value": 0,
-      "bind": {"input": "range", "min": 0, "max": 5, "step": 1}
-    },
-    {
       "name": "pageSize",
       "value": 10
+    },
+    {
+      "name": "page",
+      "value": 0,
+      "on": [
+        {
+          "events": {"type": "click", "target": "prev-button"},
+          "update": "clamp(page - 1, 0, maxPage)"
+        },
+        {
+          "events": {"type": "click", "target": "next-button"},
+          "update": "clamp(page + 1, 0, maxPage)"
+        }
+      ]
+    },
+    {
+      "name": "originCount",
+      "update": "length(data('originList'))"
+    },
+    {
+      "name": "maxPage",
+      "update": "ceil(originCount / pageSize) - 1"
     }
   ],
 
@@ -56,6 +73,17 @@
         {
           "type": "filter",
           "expr": "datum.day >= timeOffset('year', -1, datum.maxDate[0])"
+        }
+      ]
+    },
+
+    {
+      "name": "originList",
+      "source": "dailyCounts",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": ["origin"]
         }
       ]
     },
@@ -202,6 +230,51 @@
   ],
 
   "marks": [
+    {
+      "type": "group",
+      "encode": {
+        "enter": {
+          "x": {"value": 0},
+          "y": {"value": 0}
+        }
+      },
+      "marks": [
+        {
+          "type": "text",
+          "name": "prev-button",
+          "encode": {
+            "enter": {
+              "x": {"value": 20},
+              "y": {"value": -20},
+              "text": {"value": "Previous"},
+              "fill": {"value": "blue"},
+              "cursor": {"value": "pointer"},
+              "fontSize": {"value": 14}
+            },
+            "hover": {
+              "fill": {"value": "darkblue"}
+            }
+          }
+        },
+        {
+          "type": "text",
+          "name": "next-button",
+          "encode": {
+            "enter": {
+              "x": {"value": 100},
+              "y": {"value": -20},
+              "text": {"value": "Next"},
+              "fill": {"value": "blue"},
+              "cursor": {"value": "pointer"},
+              "fontSize": {"value": 14}
+            },
+            "hover": {
+              "fill": {"value": "darkblue"}
+            }
+          }
+        }
+      ]
+    },
     {
       "type": "rule",
       "from": {"data": "minMaxPerOrigin"},
