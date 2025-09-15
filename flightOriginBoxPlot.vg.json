@@ -1,0 +1,214 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
+  "description": "Flight counts by origin with whisker bands on counts and points for avg (30d) and actual (24h)",
+  "width": 800,
+  "height": 400,
+  "padding": 5,
+
+  "data": [
+    {
+      "name": "raw",
+      "url": "https://vega.github.io/editor/data/flights-20k.json",
+      "format": {"type": "json"},
+      "transform": [
+        {
+          "type": "formula",
+          "as": "parsedDate",
+          "expr": "utcParse(datum.date, '%Y/%m/%d %H:%M')"
+        },
+        {
+          "type": "formula",
+          "as": "day",
+          "expr": "utc(year(datum.parsedDate), utcmonth(datum.parsedDate), utcdate(datum.parsedDate))"
+        }
+      ]
+    },
+
+    {
+      "name": "dailyCounts",
+      "source": "raw",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": ["origin", "day"],
+          "ops": ["count"],
+          "as": ["count"]
+        },
+        {
+          "type": "joinaggregate",
+          "groupby": [],
+          "ops": ["max"],
+          "fields": ["day"],
+          "as": ["maxDate"]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.day >= timeOffset('year', -1, datum.maxDate[0])"
+        }
+      ]
+    },
+
+    {
+      "name": "minMaxPerOrigin",
+      "source": "dailyCounts",
+      "transform": [
+        {
+          "type": "aggregate",
+          "groupby": ["origin"],
+          "fields": ["count", "count", "count"],
+          "ops": ["min", "max", "average"],
+          "as": ["Low", "High", "Avg"]
+        }
+      ]
+    },
+
+    {
+      "name": "last30Days",
+      "source": "dailyCounts",
+      "transform": [
+        {
+          "type": "joinaggregate",
+          "groupby": [],
+          "ops": ["max"],
+          "fields": ["day"],
+          "as": ["maxDate"]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.day >= timeOffset('day', -30, datum.maxDate[0])"
+        },
+        {
+          "type": "aggregate",
+          "groupby": ["origin"],
+          "ops": ["average"],
+          "fields": ["count"],
+          "as": ["avgCount"]
+        }
+      ]
+    },
+
+    {
+      "name": "last24Hours",
+      "source": "raw",
+      "transform": [
+        {
+          "type": "formula",
+          "as": "parsedDate",
+          "expr": "utcParse(datum.date, '%Y/%m/%d %H:%M')"
+        },
+        {
+          "type": "joinaggregate",
+          "groupby": [],
+          "ops": ["max"],
+          "fields": ["parsedDate"],
+          "as": ["maxDate"]
+        },
+        {
+          "type": "filter",
+          "expr": "datum.parsedDate >= timeOffset('hour', -24, datum.maxDate[0])"
+        },
+        {
+          "type": "aggregate",
+          "groupby": ["origin"],
+          "ops": ["count"],
+          "as": ["count24h"]
+        }
+      ]
+    }
+  ],
+
+  "scales": [
+    {
+      "name": "y",
+      "type": "band",
+      "domain": {"data": "minMaxPerOrigin", "field": "origin"},
+      "range": "height",
+      "padding": 0.3
+    },
+    {
+      "name": "x",
+      "type": "linear",
+      "domain": {
+        "data": "minMaxPerOrigin",
+        "fields": ["Low", "High"],
+        "sort": true
+      },
+      "range": "width",
+      "nice": true,
+      "zero": false
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": {"data": "minMaxPerOrigin", "field": "origin"},
+      "range": {"scheme": "category10"}
+    }
+  ],
+
+  "axes": [
+    {"orient": "bottom", "scale": "x", "title": "Flight Counts"},
+    {"orient": "left", "scale": "y", "title": "Origin"}
+  ],
+
+  "legends": [
+    {
+      "fill": "color",
+      "title": "Origin",
+      "orient": "right"
+    }
+  ],
+
+  "marks": [
+    {
+      "type": "rule",
+      "from": {"data": "minMaxPerOrigin"},
+      "encode": {
+        "enter": {
+          "y": {"scale": "y", "field": "origin", "offset": {"signal": "bandwidth('y')/2"}},
+          "y2": {"scale": "y", "field": "origin", "offset": {"signal": "bandwidth('y')/2"}},
+          "x": {"scale": "x", "field": "Low"},
+          "x2": {"scale": "x", "field": "High"},
+          "stroke": {"scale": "color", "field": "origin"},
+          "strokeWidth": {"value": 3},
+          "opacity": {"value": 0.6}
+        }
+      }
+    },
+    {
+      "type": "symbol",
+      "from": {"data": "last30Days"},
+      "encode": {
+        "enter": {
+          "y": {"scale": "y", "field": "origin", "offset": {"signal": "bandwidth('y')/2"}},
+          "x": {"scale": "x", "field": "avgCount"},
+          "size": {"value": 120},
+          "shape": {"value": "circle"},
+          "fill": {"scale": "color", "field": "origin"},
+          "stroke": {"value": "black"},
+          "strokeWidth": {"value": 1},
+          "tooltip": {
+            "signal": "{'Origin': datum.origin, 'Avg (30d)': format(datum.avgCount, '.1f')}"
+          }
+        }
+      }
+    },
+    {
+      "type": "symbol",
+      "from": {"data": "last24Hours"},
+      "encode": {
+        "enter": {
+          "y": {"scale": "y", "field": "origin", "offset": {"signal": "bandwidth('y')/2"}},
+          "x": {"scale": "x", "field": "count24h"},
+          "size": {"value": 180},
+          "shape": {"value": "circle"},
+          "fill": {"value": "white"},
+          "stroke": {"scale": "color", "field": "origin"},
+          "strokeWidth": {"value": 2},
+          "tooltip": {
+            "signal": "{'Origin': datum.origin, 'Count (24h)': datum.count24h}"
+          }
+        }
+      }
+    }
+  ]
+}
