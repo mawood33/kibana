@@ -6,24 +6,24 @@
   "padding": 5,
 
   "signals": [
-    { "name": "pageSize", "value": 10 },
+    { "name": "pageSize", "value": 10},
     {
       "name": "page",
       "value": 0,
       "on": [
-        { "events": { "type": "click", "target": "first-button" }, "update": "0" },
-        { "events": { "type": "click", "target": "prev-button" }, "update": "clamp(page - 1, 0, maxPage)" },
-        { "events": { "type": "click", "target": "next-button" }, "update": "clamp(page + 1, 0, maxPage)" },
-        { "events": { "type": "click", "target": "last-button" }, "update": "maxPage" }
+        { "events": { "type": "click", "markname": "first-button" }, "update": "0" },
+        { "events": { "type": "click", "markname": "prev-button" }, "update": "clamp(page - 1, 0, maxPage)" },
+        { "events": { "type": "click", "markname": "next-button" }, "update": "clamp(page + 1, 0, maxPage)" },
+        { "events": { "type": "click", "markname": "last-button" }, "update": "maxPage" }
       ]
     },
     {
       "name": "originCount",
-      "update": "length(data('originIndex'))"
+      "update": "length(data('originIndex')) || 0"
     },
     {
       "name": "maxPage",
-      "update": "ceil(originCount / pageSize) - 1"
+      "update": "max(ceil(originCount / pageSize) - 1,0)"
     },
     {
       "name": "pageLabel",
@@ -86,13 +86,13 @@
           "as": ["Low", "High", "Avg"]
         },
         {
+          "type": "collect",
+          "sort": { "field": "origin", "order": "ascending" }
+        },
+        {
           "type": "window",
           "ops": ["row_number"],
           "as": ["row_number"]
-        },
-        {
-          "type": "collect",
-          "sort": { "field": "origin", "order": "ascending" }
         }
       ]
     },
@@ -317,9 +317,11 @@
             "enter": {
               "x": { "value": 350 },
               "y": { "value": -30 },
-              "text": { "signal": "pageLabel" },
               "fill": { "value": "black" },
               "fontSize": { "value": 14 }
+            },
+            "update":{
+                "text": { "signal": "pageLabel" }
             }
           }
         }
