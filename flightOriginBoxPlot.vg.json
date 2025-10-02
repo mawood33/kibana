@@ -361,8 +361,8 @@
       "from": { "data": "last30Days" },
       "encode": {
         "enter": {
-          "size": { "value": 120 },
-          "shape": { "value": "circle" },
+          "size": { "value": 240 },
+          "shape": { "value": "square" },
           "stroke": { "value": "black" },
           "strokeWidth": { "value": 1 }
         },
@@ -377,13 +377,33 @@
       },
       "transition": { "type": "fade", "duration": 300 }
     },
+    {
+      "type": "text",
+      "from": {"data": "last30Days"},
+      "encode": {
+        "enter": {
+          "x": { "scale": "x", "field": "avgCount" },
+          "y": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
+          "align": { "value": "center" },
+          "baseline": { "value": "middle" },
+          "fill": { "value": "black" },
+          "fontSize": { "value": 10 },
+          "fontWeight": { "value": "bold" },
+          // Format conditionally
+          "text": {
+            // "signal": "format(datum.avgCount < 100 ? datum.avgCount : datum.avgCount, datum.avgCount < 100 ? '.1f' : '.0f')"
+            "signal": "format(datum.avgCount, '.0f')"
+          }
+        }
+      }
+    },
 
     {
       "type": "symbol",
       "from": { "data": "last24Hours" },
       "encode": {
         "enter": {
-          "size": { "value": 180 },
+          "size": { "value": 240 },
           "shape": { "value": "circle" },
           "fill": { "value": "white" },
           "strokeWidth": { "value": 2 }
@@ -395,9 +415,27 @@
           "tooltip": {
             "signal": "{'Origin': datum.origin, 'Count (24h)': datum.count24h}"
           }
-        }
+        },
       },
       "transition": { "type": "fade", "duration": 300 }
+    },
+    {
+      "type": "text",
+      "from": {"data": "last24Hours"},
+      "encode": {
+        "enter": {
+          "x": { "scale": "x", "field": "count24h" },
+          "y": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
+          "align": { "value": "center" },
+          "baseline": { "value": "middle" },
+          "fill": { "value": "black" },
+          "fontSize": { "value": 10 },
+          "fontWeight": { "value": "bold" },
+          "text": {
+            "signal": "format(datum.count24h, '.0f')"
+          }
+        }
+      }
     }
   ]
 }
