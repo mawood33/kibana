@@ -175,6 +175,12 @@
           "as": "parsedDate",
           "expr": "utcParse(datum.date, '%Y/%m/%d %H:%M')"
         },
+        // {
+        //   "type": "window",
+        //   "ops": ["max"],
+        //   "fields": ["day"],
+        //   "as": ["maxDate"]
+        // },
         {
           "type": "joinaggregate",
           "groupby": [],
@@ -184,10 +190,10 @@
         },
         {
           "type": "filter",
-          "expr": "datum.parsedDate >= timeOffset('hour', -24, datum.maxDate[0])"
+          "expr": "datum.parsedDate >= datetime(time(datum.maxDate)-86400000)"
         },
         {
-          "type": "aggregate",
+          "type": "joinaggregate",
           "groupby": ["origin"],
           "ops": ["count"],
           "as": ["count24h"]
@@ -341,7 +347,10 @@
           "x2": { "scale": "x", "field": "High" },
           "y": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
           "y2": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
-          "stroke": { "scale": "color", "field": "origin" }
+          "stroke": { "scale": "color", "field": "origin" },
+          "tooltip": {
+            "signal": "{'Origin': datum.origin, 'Low': datum.Low, 'High': datum.High}"
+          }
         }
       },
       "transition": { "type": "fade", "duration": 300 }
