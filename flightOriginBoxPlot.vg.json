@@ -1,5 +1,5 @@
 {
-  "$schema": "https://vega.github.io/schema/vega/v6.json",
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
   "description": "Flight counts by origin with full pagination + stable whiskers",
   "width": 800,
   "height": 400,
@@ -34,13 +34,29 @@
   "data": [
     {
       "name": "raw",
-      "url": "https://vega.github.io/editor/data/flights-20k.json",
-      "format": { "type": "json" },
+      "url": "https://raw.githubusercontent.com/mawood33/kibana/refs/heads/main/data/flights-20k-ms.json",
+      "format": { "type": "json"},
       "transform": [
         {
           "type": "formula",
           "as": "parsedDate",
-          "expr": "utcParse(datum.date, '%Y/%m/%d %H:%M')"
+          // Parse source date as local time
+          // "2001/01/01 00:47" unless ISO standard YY:MM:DDTHH:MM:SS, datetime parses as local time
+          // 1/1/2001 00:47 in datasource is treated as KST if you're in Korea, MST if in Colorado
+          // parsedDate becomes 12/31/2000 15:47:00 GMT
+          // "expr": "datetime(datum.date)"
+
+          // Parse source datetime as UTC
+          // 1/1/2001 00:00 in datasource is treated as GMT
+          // parsedDate stays 1/1/2001 00:47:00 GMT
+          // "expr": "utcParse(datum.date, '%Y/%m/%d %H:%M')"
+
+          // Parse source datetime as milliseconds
+          // 978353220000 becomes 1/1/2001 12:47:00 GMT
+          // "expr": "utcParse(datum.date, '%Q')"
+
+          // Parse source as UTC or milliseconds
+          "expr": "if(utcParse(datum.date, '%Y/%m/%d %H:%M'), utcParse(datum.date, '%Y/%m/%d %H:%M'), if(utcParse(datum.date, '%Q'), utcParse(datum.date, '%Q'), 'Other'))"
         },
         {
           "type": "formula",
@@ -170,16 +186,20 @@
       "name": "last24Hours",
       "source": "raw",
       "transform": [
+        // {
+        //   "type": "formula",
+        //   "as": "parsedDate",
+        //   "expr": "utcParse(datum.date, '%Y/%m/%d %H:%M')"
+        // },
         {
-          "type": "formula",
-          "as": "parsedDate",
-          "expr": "utcParse(datum.date, '%Y/%m/%d %H:%M')"
+          "type": "filter",
+          "expr": "isValid(datum.parsedDate)"
         },
         // {
         //   "type": "window",
         //   "ops": ["max"],
         //   "fields": ["day"],
-        //   "as": ["maxDate"]
+        //   "as": ["maxParsed"]
         // },
         {
           "type": "joinaggregate",
@@ -189,12 +209,17 @@
           "as": ["maxDate"]
         },
         {
+            "type": "formula",
+            "as": "test",
+            "expr": "utcParse('hour', -24, datum.day)"
+        },
+        {
           "type": "filter",
-          "expr": "datum.parsedDate >= datetime(time(datum.maxDate)-86400000)"
+          "expr": "datum.parsedDate >= utcParse('hour', -24, datum.maxDate)"
         },
         {
           "type": "joinaggregate",
-          "groupby": ["origin"],
+          "groupby": ["origin", "day"],
           "ops": ["count"],
           "as": ["count24h"]
         },
@@ -361,8 +386,8 @@
       "from": { "data": "last30Days" },
       "encode": {
         "enter": {
-          "size": { "value": 240 },
-          "shape": { "value": "square" },
+          "size": { "value": 120 },
+          "shape": { "value": "circle" },
           "stroke": { "value": "black" },
           "strokeWidth": { "value": 1 }
         },
@@ -377,33 +402,13 @@
       },
       "transition": { "type": "fade", "duration": 300 }
     },
-    {
-      "type": "text",
-      "from": {"data": "last30Days"},
-      "encode": {
-        "enter": {
-          "x": { "scale": "x", "field": "avgCount" },
-          "y": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
-          "align": { "value": "center" },
-          "baseline": { "value": "middle" },
-          "fill": { "value": "black" },
-          "fontSize": { "value": 10 },
-          "fontWeight": { "value": "bold" },
-          // Format conditionally
-          "text": {
-            // "signal": "format(datum.avgCount < 100 ? datum.avgCount : datum.avgCount, datum.avgCount < 100 ? '.1f' : '.0f')"
-            "signal": "format(datum.avgCount, '.0f')"
-          }
-        }
-      }
-    },
 
     {
       "type": "symbol",
       "from": { "data": "last24Hours" },
       "encode": {
         "enter": {
-          "size": { "value": 240 },
+          "size": { "value": 180 },
           "shape": { "value": "circle" },
           "fill": { "value": "white" },
           "strokeWidth": { "value": 2 }
@@ -415,27 +420,9 @@
           "tooltip": {
             "signal": "{'Origin': datum.origin, 'Count (24h)': datum.count24h}"
           }
-        },
+        }
       },
       "transition": { "type": "fade", "duration": 300 }
-    },
-    {
-      "type": "text",
-      "from": {"data": "last24Hours"},
-      "encode": {
-        "enter": {
-          "x": { "scale": "x", "field": "count24h" },
-          "y": { "scale": "y", "field": "origin", "offset": { "signal": "bandwidth('y')/2" } },
-          "align": { "value": "center" },
-          "baseline": { "value": "middle" },
-          "fill": { "value": "black" },
-          "fontSize": { "value": 10 },
-          "fontWeight": { "value": "bold" },
-          "text": {
-            "signal": "format(datum.count24h, '.0f')"
-          }
-        }
-      }
     }
   ]
 }
