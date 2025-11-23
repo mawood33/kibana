@@ -158,7 +158,7 @@
         },
         {
           "type": "filter",
-          "expr": "datum.day >= timeOffset('day', -30, datum.maxDate[0])"
+          "expr": "datum.day >= timeOffset('day', now(), -30)"
         },
         {
           "type": "aggregate",
@@ -209,13 +209,8 @@
           "as": ["maxDate"]
         },
         {
-            "type": "formula",
-            "as": "test",
-            "expr": "utcParse('hour', -24, datum.day)"
-        },
-        {
           "type": "filter",
-          "expr": "datum.parsedDate >= utcParse('hour', -24, datum.maxDate)"
+          "expr": "datum.parsedDate >= utcParse(now() - 24 * 60 * 60 * 1000, '%Q')"
         },
         {
           "type": "joinaggregate",
